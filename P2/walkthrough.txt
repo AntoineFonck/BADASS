@@ -1,0 +1,14 @@
+What is VXLAN ?
+
+VXLAN is a technology that lets you have a VLAN over an IP network.
+
+It is an extension of the VLAN technology, which would let you have separate virtual LANs with a reduced number of physical network appliances.
+
+Thanks to VXLAN, you can make two devices think they are on the same local network, when in reality they are at two completely different places of the world.
+
+How does it work ?
+
+The original layer 2 frame is encapsulated in UDP, transmitted over an IP network like the internet, and then decapsulated to retrieve the original layer 2 frame.
+
+Devices called VTEP are the ones doing this encapsulation/decapsulation.
+They also add a VXLAN header to the original layer 2 frame. This way, they can differentiate between different VLAN, thanks to a specific ID : the VNI.
