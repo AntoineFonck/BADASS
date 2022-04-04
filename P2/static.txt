@@ -1,0 +1,35 @@
+FIRST STEP : Static VXLAN configuration --> no multicast
+
+Goals :
+host_1 and host_2 think they are on the same LAN only thanks to VXLAN
+
+For our VXLAN to work, we need :
+2 VTEP (our switches/routers) that can communicate with each other over IP and UDP.
+They also need to learn about know each other at L2 level, through their FDB (Forwarding DataBase).
+The FDB will remember all hosts by their MAC addresses behind every VTEP.
+
+This first configuration is easy, because the 2 VTEPs are directly connected to each other.
+
+We will statically configure the 2 VTEPs so that they don't need to learn about each other dynamically with multicast
+
+Router configuration :
+R1
+eth1 conf
+# Set IP for the outside-facing interface (the one connecting to the other VTEP)
+ip addr add 42.42.42.1
+VXLAN/eth0 conf
+# Set IP for the inner-facing interface (the one simulating the LAN switch)
+ip addr add 192.168.42.1/24 dev eth0
+# Set VXLAN interface and statically indicate where the other VTEP is
+ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 remote 42.42.42.2
+ip link set vxlan10 up
+# Bridge the inner-facing interface and the VXLAN interface
+ip link add br0 type bridge
+ip link set br0 up
+ip link set vxlan10 master br0
+ip link set eth0 master br0
+
+R2
+ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.2 remote 42.42.42.1
+
+
