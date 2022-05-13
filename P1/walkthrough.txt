@@ -11,6 +11,7 @@ P1 steps :
 2) Create 2 Dockerfiles for our 2 desired Docker images :
 	- 1 for the host (based on a basic alpine image)
 	- 1 for the router (based on a frrouting image, to easily and natively handle routing protocols)
+	  We activate the BGP, OSPF, and IS-IS daemons by activating them in the configuration file called "daemons"
 
 3) Build the 2 Docker images from the Dockerfiles through a custom made bash script
 

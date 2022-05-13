@@ -1,0 +1,7 @@
+Why not keep using only multicast ?
+
+Security issue with default VXLAN (RFC 7348)
+
+BGP EVPN (RFC 8365)
+
+Le principe de cette solution est simple : les hôtes hébergeant les VTEP utilisent BGP pour échanger les informations nécessaires au fonctionnement de VXLAN. Un VTEP n'apprend plus les associations {adresse MAC → VTEP} en observant des paquets : il est désormais impossible pour un attaquant d'empoisonner des VTEP simplement en envoyant des paquets VXLAN.
