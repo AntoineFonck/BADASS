@@ -1,0 +1,43 @@
+P1 objectives :
+- Have a VM (Ubuntu based) ready for GNS3 use with Docker images
+- Have 2 Docker images (1 host, 1 router)
+- Have a simple GNS project setup with 1 host and 1 router
+
+P1 steps :
+1) Setup the VM with a custom made bash script that :
+	- installs GNS3
+	- installs Docker
+
+2) Create 2 Dockerfiles for our 2 desired Docker images :
+	- 1 for the host (based on a basic alpine image)
+	- 1 for the router (based on a frrouting image, to easily and natively handle routing protocols)
+
+3) Build the 2 Docker images from the Dockerfiles through a custom made bash script
+
+4) Open GNS3 preferences menu (Ctrl+Shift+P) and create 2 Docker container templates with base images host:latest and router:latest
+
+Config for the host :
+	- name : host_LOGIN
+	- number of adapters : 1
+	- leave rest by default
+
+Config for the router :
+	- name : router_LOGIN
+	- number of adapters : 2
+	- leave rest by default
+	- (Optionally) edit the template :
+		- change category to "Routers"
+		- change symbol to route_switch_processor
+
+Apply the config and select OK
+
+5) Drag and drop one host and one router on the main screen and start all nodes (PLAY icon)
+
+6) Connect to the running host and router (TERMINAL icon)
+
+You may have to change the default console connection application if you don't have gnome-terminal
+
+If the terminal is unresponsive for the router, launch the auxiliary terminal(right click on the router and select the auxiliary terminal)
+
+Finally, launch ps on both containers, and voila !
+

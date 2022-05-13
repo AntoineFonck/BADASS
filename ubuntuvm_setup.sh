@@ -33,7 +33,7 @@ sudo apt update
 sudo apt install docker-ce
 
 # Finally, add your user to the following groups:
-sudo usermod -aG ubridge,libvirt,kvm,wireshark,docker $(whoami)
+sudo usermod -aG ubridge,libvirt,kvm,wireshark,docker $(logname)
 
 # Now restart user session (log out/log in)
 echo "Please restart your user session for some changes to apply"
