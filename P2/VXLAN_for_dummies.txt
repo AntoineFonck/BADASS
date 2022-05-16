@@ -2,7 +2,7 @@ What is VXLAN ?
 
 VXLAN is a technology that lets you have a VLAN over an IP network.
 
-It is an extension of the VLAN technology, which would let you have separate virtual LANs with a reduced number of physical network appliances.
+It is an extension of the VLAN technology. VLAN lets you have separate virtual LANs with a reduced number of physical network appliances.
 
 Thanks to VXLAN, you can make two devices think they are on the same local network, when in reality they are at two completely different places of the world.
 

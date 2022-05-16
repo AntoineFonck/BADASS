@@ -1,16 +1,31 @@
-#
-# This is a sample network config uncomment lines to configure the network
-#
+auto lo
+iface lo inet loopback
 
+# Static config for eth1
+auto eth1
+iface eth1 inet static
+	address 42.42.42.2
+	netmask 255.255.255.0
 
-# Static config for eth0
-#auto eth0
-#iface eth0 inet static
-#	address 192.168.0.2
-#	netmask 255.255.255.0
-#	gateway 192.168.0.1
-#	up echo nameserver 192.168.0.1 > /etc/resolv.conf
+# Static config for eth0 
+auto eth0
+iface eth0 inet static
+	address 192.168.42.254
+	netmask 255.255.255.0
 
-# DHCP config for eth0
-# auto eth0
-# iface eth0 inet dhcp
+auto vxlan10
+iface vxlan10 inet manual
+	pre-up ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.2 remote 42.42.42.1 dev eth1
+	up ip link set vxlan10 up
+	down ip link set vxlan10 down
+	post-down ip link del vxlan10 
+
+auto br0
+iface br0 inet manual
+	pre-up ip link add br0 type bridge
+	up ip link set br0 up
+	post-up ip link set vxlan10 master br0
+	post-up ip link set eth0 master br0
+	down ip link set br0 down
+	post-down ip link del br0
+#	bridge-ports vxlan10 eth0

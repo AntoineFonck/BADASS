@@ -1,3 +1,6 @@
+auto lo
+iface lo inet loopback
+
 # Static config for eth1
 auto eth1
 iface eth1 inet static
@@ -12,7 +15,23 @@ iface eth0 inet static
 
 auto vxlan10
 iface vxlan10 inet manual
-	pre-up ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 remote 42.42.42.2 dev eth1
+	pre-up ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 remote 42.42.42.2 dev eth1 || true
+	pre-up echo test > /tmp/test
 	up ip link set vxlan10 up
 	down ip link set vxlan10 down
 	post-down ip link del vxlan10 
+
+auto br0
+iface br0 inet manual
+#        pre-up ip link add br0 type bridge
+        pre-up brctl addbr br0
+        up ip link set br0 up
+#        post-up ip link set vxlan10 master br0
+#        post-up ip link set eth0 master br0
+        post-up brctl addif br0 vxlan10
+        post-up brctl addif br0 eth0
+        down ip link set br0 down
+#        post-down ip link del br0
+        post-down brctl delbr br0
+#        bridge-ports vxlan10 eth0
+
