@@ -1,47 +1,36 @@
 FIRST STEP : Static VXLAN configuration --> no multicast
 
 Objectives :
-VXLAN set up statically
+VXLAN set up statically (host_1 and host_2 can communicate at L2 level)
 
-For our VXLAN to work, we need :
-2 VTEP (our switches/routers) that can communicate with each other over IP and UDP.
-They also need to know about each other at L2 level, through their FDB (Forwarding DataBase).
-The FDB will remember all hosts by their MAC addresses behind every VTEP.
+This workshop introduces a problem :
+How to make VTEPs know about each other, and about the hosts to which they are physically connected ?
 
-This first configuration is easy, because the 2 VTEPs are directly connected to each other.
+Well, VTEPs, by default, learn associations dynamically.
+
+For instance :
+1) Host1 sends a frame meant for Host2 to VTEP1.
+2) VTEP1 knows that Host2 is behind VTEP2, so it forwards the frame to VTEP2.
+3) VTEP2 analyzes the frame, and forwards it to Host2.
+Before, VTEP2 didn't know Host1 was behind VTEP1, and now it knows it thanks to this frame.
+
+Host1 --> VTEP1 --> VTEP2 --> Host2
+
+All those associations are stored in the FDB (Forwarding DataBase) of the VTEP.
+
+In the FDB, you find the following associations :
+MAC address - network interface (for local devices, e.g. 42:42:42:42:42:42 eth1)
+MAC address - IP of the master VTEP (for non-local devices, e.g. DE:AD:BE:EF:DE:AD 42.42.42.3)
+
+But VTEPs can never learn if they don't receive anything.
+
+So, the easiest solution is to statically link VTEPs in the FDB.
+Basically, if a VTEP receives a frame meant for a device it doesn't know, and is behind an other VTEP, it will forward the frame via VXLAN to the hardcoded VTEP in the FDB.
+The entry in the FDB will look like this :
+
+(wildcard MAC)		(VTEP_IP)
+00:00:00:00:00:00	42.42.42.3
 
 We will statically configure the 2 VTEPs so that they don't need to learn about each other dynamically with multicast
-
-Router configuration :
-R1
-eth1 conf
-# Set IP for the outside-facing interface (the one connecting to the other VTEP)
-ip addr add 42.42.42.1/24 dev eth1
-VXLAN/eth0 conf
-# Set IP for the inner-facing interface (the one simulating the LAN switch)
-ip addr add 192.168.42.1/24 dev eth0
-# Set VXLAN interface and statically indicate where the other VTEP is
-ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 remote 42.42.42.2
-ip link set vxlan10 up
-# Bridge the inner-facing interface and the VXLAN interface
-ip link add br0 type bridge
-ip link set br0 up
-ip link set vxlan10 master br0
-ip link set eth0 master br0
-
-R2
-# Set IP for the outside-facing interface (the one connecting to the other VTEP)
-ip addr add 42.42.42.2/24 dev eth1
-VXLAN/eth0 conf
-# Set IP for the inner-facing interface (the one simulating the LAN switch)
-ip addr add 192.168.42.254/24 dev eth0
-# Set VXLAN interface and statically indicate where the other VTEP is
-ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.2 remote 42.42.42.1
-ip link set vxlan10 up
-# Bridge the inner-facing interface and the VXLAN interface
-ip link add br0 type bridge
-ip link set br0 up
-ip link set vxlan10 master br0
-ip link set eth0 master br0
 
 

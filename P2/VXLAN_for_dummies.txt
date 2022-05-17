@@ -1,20 +1,124 @@
-What is VXLAN ?
+VXLAN for dummies
 
-VXLAN is a technology that lets you have a VLAN over an IP network.
+1) What is a LAN
+2) What is a VLAN
+3) What is a VXLAN
 
-It is an extension of the VLAN technology. VLAN lets you have separate virtual LANs with a reduced number of physical network appliances.
+------------------------------------------------
 
-Thanks to VXLAN, you can make two devices think they are on the same local network, when in reality they are at two completely different places of the world.
+1) What is a LAN (Local Area Network) ?
+
+A LAN is a network where devices are connected to each other at the DATA layer (L2) of the OSI model.
+The devices are usually connected physically through switches, or similar devices. 
+Devices can also be connected wirelessly (through a WIFI access point for instance).
+
+If devices can communicate to each other through L2 protocols (e.g. Ethernet) via their MAC addresses, then they are in the same LAN.
+
+------------------------------------------------
+
+2) What is a VLAN (Virtual Local Area Network) ?
+
+VLAN is a technology that lets you have isolated virtual LANs with a reduced number of physical network appliances.
+
+The networks (and the devices inside) are isolated from each other by the switch in a virtual way, instead of a physical way.
+
+To get the same LAN isolation without VLANs, you would need two very distinct physical networks, with their respective switches, WIFI access points and so on...
+
+In the same manner as for isolated LANs, the only way for devices from different VLANs to communicate with each other is to go through a router.
+
+Indeed, routers connect networks together. So they are able to route packets from one LAN to the other.
+
+In order to extend VLANs to more than one switch, tagged links were created.
+Tagged links are the connections between switches that share the same VLANs.
+To know to which VLAN a host that sent a packet belongs, switches share through their tagged link a VLAN ID, that they add to each packet before forwarding it to the other switch.
+
+In the following example :
+Host 1 is in the same VLAN as Host 3, they can directly communicate to each other
+Host 2 is in the same VLAN as Host 4, they can directly communicate to each other
+
+If Host 1 tries to talk to Host 4, Switch 1 will add the VLAN ID 10 to the frame Host 1 tries to send.
+When Switch 2 receives the frame, it will not forward it to Host 4. Indeed, it knows that the incoming frame belongs to VLAN 10, whereas Host 4 belongs to VLAN 15.
+
+
+				   Tagged link
+             ┌──────────────────┐                ┌──────────────────┐
+             │   Switch 1       ├────────────────┤   Switch 2       │
+             │                  ├────────────────┤                  │
+             └──▲───────▲───────┘                └────▲─────────▲───┘
+                │       │                             │         │
+                │       │                             │         │
+  ┌──────────┬──┘    ┌──┴───────┐                 ┌───┴──────┐  └────┬──────────┐
+  │          │       │          │                 │          │       │          │
+  │Host 1    │       │Host 2    │                 │Host 3    │       │Host 4    │
+  │VLAN ID 10│       │VLAN ID 15│                 │VLAN ID 10│       │VLAN ID 15│
+  └──────────┘       └──────────┘                 └──────────┘       └──────────┘
+
+VLANs have some limitations :
+	- The number of available VLAN IDs is relatively small (12 bits --> 4096)
+	- VLANs can't natively extend beyond a L2 domain (as it is a L2 technology) --> so VLANs can't natively work over a L3/IP network, like the Internet.
+
+------------------------------------------------
+
+3) What is VXLAN (Virtual eXtended Local Area Network) ?
+
+VXLAN is a technology that lets you have VLANs over an IP network.
+It is an extension of the VLAN technology.
+
+Here are the two added benefits of VXLAN compared to VLAN :
+	- More VLAN IDs (24 bits --> +16 million)
+	- Extend VLANs to IP networks (no more limitation to a single L2 domain !)
 
 How does it work ?
 
-The original layer 2 frame is encapsulated in UDP, transmitted over an IP network (like the internet), and then decapsulated to retrieve the original layer 2 frame.
+As we saw, it would usually be impossible for L2 frames to reach their destination if they are not on the same L2 domain.
 
-Devices called VTEP are the ones doing this encapsulation/decapsulation.
-They also add a VXLAN header to the original layer 2 frame. This way, they can differentiate between different VLAN, thanks to a specific ID : the VNI.
+Under, we see the problem --> A pure IP packet has to way to retain Ethernet information, as L2 comes before L3, and is therefore discarded when the IP packet is transmitted.
+L2		L3
+Ethernet ->	IP
+
+To solve this problem, VXLAN uses encapsulation.
+
+Encapsulation is a solution used often in networking.
+
+The idea is very simple :
+You put the original packet (in our case, a L2/Ethernet frame, that usually can't be transmitted) in a whole new packet (here, a L3/IP packet, that can be transmitted !).
+
+This way, when the packet reaches its destination, you only have to throw away/decapsulate the original packet. Then you end up with the original packet, that was able to reach its destination only thanks to encapsulation.
 
 
-Here's what the hosts see :
+                                   ┌───────────────────────────────────┐
+                       Encapsulate │        New packet                 │ Decapsulate
+                                   │                                   │
+  ┌──────────────────────┐         │      ┌──────────────────────┐     │       ┌──────────────────────┐
+  │                      │         │      │                      │     │       │                      │
+  │  Original packet     ├─────────►      │  Original packet     │     ├───────►  Original packet     │
+  │                      │         │      │                      │     │       │                      │
+  └──────────────────────┘         │      └──────────────────────┘     │       └──────────────────────┘
+                                   │                                   │
+                                   └───────────────────────────────────┘
+
+
+Through encapsulation, you create what is called an overlay network.
+
+An overlay network works as an abstraction.
+It seems for connected devices like a normal network.
+However, behind the scenes, a possibly messy underlay network handles all the hard work.
+
+For VXLAN, our overlay network is the VLAN we created (a L2 network).
+Its underlay network is the IP network working behind the scenes with the encapsulation (a L3 network).
+
+How does this encapsulation work for VXLAN ?
+
+The original L2 frame is encapsulated in UDP (L4), transmitted over an IP network (L3, like the internet), and then decapsulated to retrieve the original layer 2 frame.
+
+L3	L4			L2(encapsulated)
+IP  ->	UDP+VXLAN Header  ->	Ethernet
+
+Devices called VTEP are the ones doing the encapsulation/decapsulation.
+They also add a VXLAN header to the original layer 2 frame. This way, they can differentiate between different VLAN, thanks to a specific ID : the VNI (Vxlan Network Identifier).
+
+
+Here's what the hosts see (the overlay network) :
 
                      ┌──────────────────┐
          ┌──────────►│                  │◄────────┐
@@ -32,13 +136,13 @@ Here's what the hosts see :
  └─────────────┘                            └─────────────┘
 
 
-Here's what actually happens :
+Here's what actually happens (the underlay network) :
 
 
                   VXLAN traffic
        ┌──────┐                    ┌──────┐
        │      ├────────────────────►      │
-       │VTEP 1│                    │VTEP 2│
+       │VTEP 1│  A lot of stuff    │VTEP 2│
        │      ◄────────────────────┤      │
        │      │                    │      │
        └───▲──┘                    └────▲─┘
@@ -52,3 +156,8 @@ Here's what actually happens :
   │  Host 1  │                       │  Host 2  │
   │          │                       │          │
   └──────────┘                       └──────────┘
+
+
+Limitation of VXLAN :
+	- As it is an encapsulation protocol, the size of the packets increases dramatically. If the underlay network doesn't have a large MTU (Max Transmission Unit), packets won't reach their destination.
+

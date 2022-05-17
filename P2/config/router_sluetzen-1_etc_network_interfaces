@@ -1,37 +1,49 @@
+# VTEP config
+
+# Static config for lo
+# (loopback)
 auto lo
 iface lo inet loopback
 
 # Static config for eth1
+# (outer-facing IP interface that forwards/receives VXLAN packets to/from VTEPs)
 auto eth1
 iface eth1 inet static
 	address 42.42.42.1
 	netmask 255.255.255.0
+	post-up echo "net.ipv6.conf.all.disable_ipv6 = 1" > /etc/sysctl.conf
+	post-up echo "net.ipv6.conf.default.disable_ipv6 = 1" >> /etc/sysctl.conf
+	post-up echo "net.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf
+	post-up echo "net.ipv6.conf.eth0.disable_ipv6 = 1" >> /etc/sysctl.conf
+	post-up sysctl -p
 
-# Static config for eth0 
+# Static config for eth0
+# (inner-facing interface physically connected to a HOST)
 auto eth0
-iface eth0 inet static
-	address 192.168.42.1
-	netmask 255.255.255.0
+iface eth0 inet manual
+	up ip link set eth0 up
 
+# Static config for vxlan10
+# (virtual VXLAN interface that handles VXLAN encapsulation/decapsulation and dynamic learning)
 auto vxlan10
 iface vxlan10 inet manual
-	pre-up ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 remote 42.42.42.2 dev eth1 || true
-	pre-up echo test > /tmp/test
+#	pre-up ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 remote 42.42.42.2 dev eth1 || true
+#	FIX stupid bootstrap GNS3 busybox ip command (/tmp/gns3/bin/ip, set up at /gns3/init.sh) that can't even properly set up a VXLAN interface
+	pre-up env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 remote 42.42.42.2 dev eth1 || true
 	up ip link set vxlan10 up
 	down ip link set vxlan10 down
 	post-down ip link del vxlan10 
 
+# Static config for br0
+# (bridge interface that links the physical interface eth0 to the virtual interface vxlan10 so that the vxlan10 interface can receive the packets to encapsulate/decapsulate)
 auto br0
 iface br0 inet manual
-#        pre-up ip link add br0 type bridge
-        pre-up brctl addbr br0
-        up ip link set br0 up
-#        post-up ip link set vxlan10 master br0
-#        post-up ip link set eth0 master br0
-        post-up brctl addif br0 vxlan10
-        post-up brctl addif br0 eth0
-        down ip link set br0 down
-#        post-down ip link del br0
-        post-down brctl delbr br0
-#        bridge-ports vxlan10 eth0
+#	address 192.168.42.1
+#	netmask 255.255.255.0
+	pre-up brctl addbr br0
+	up ip link set br0 up
+	post-up brctl addif br0 vxlan10
+	post-up brctl addif br0 eth0
+	down ip link set br0 down
+	post-down brctl delbr br0
 
