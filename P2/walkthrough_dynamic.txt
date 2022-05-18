@@ -1,0 +1,22 @@
+SECOND STEP : Dynamic VXLAN configuration --> IP multicast
+
+Objectives :
+VXLAN set up dynamically, via an IP multicast group (host_1 and host_2 can communicate at L2 level)
+
+This time, instead of hardcoding for each VTEP the other VTEP's IP address, we will use a single IP multicast group.
+
+The concept is pretty basic :
+The VTEPs don't know each other's addresses, only a special IP --> the multicast group (239.1.1.1 in our case).
+Thanks to multicast, they will alert each other that they belong to the same group to do VXLAN (by using a protocol called IGMP (Internet Group Management Protocol)).
+This way, when a VTEP has to forward a frame to an other unknown VTEP, it will just send the packet to all VTEPs that "subscribed" to the multicast group (239.1.1.1).
+
+This brings flexibility into our configuration, especially if we start adding more VTEPs.
+
+For instance :
+If we added a VTEP3, and continued using the static configuration, we would have to :
+	- update VTEP1 by hardcoding VTEP3's IP address as a VXLAN destination
+	- update VTEP2 by hardcoding VTEP3's IP address as a VXLAN destination
+	- set up VTEP3 by hardcoding VTEP1 and VTEP2's IP addresses as VXLAN destinations
+
+However, if we used a dynamic configuration, we would only have to :
+	- set up VTEP3 to be a member of the multicast group we created (239.1.1.1)

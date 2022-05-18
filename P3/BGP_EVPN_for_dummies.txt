@@ -5,3 +5,40 @@ Security issue with default VXLAN (RFC 7348)
 BGP EVPN (RFC 8365)
 
 Le principe de cette solution est simple : les hôtes hébergeant les VTEP utilisent BGP pour échanger les informations nécessaires au fonctionnement de VXLAN. Un VTEP n'apprend plus les associations {adresse MAC → VTEP} en observant des paquets : il est désormais impossible pour un attaquant d'empoisonner des VTEP simplement en envoyant des paquets VXLAN.
+https://connect.ed-diamond.com/MISC/misc-110/securite-de-l-implementation-standard-de-vxlan (FR)
+https://vincent.bernat.ch/fr/blog/2017-vxlan-bgp-evpn (FR)
+
+The vulnerability comes from the fact that the VTEP "learns" associations when it receives a packet.
+
+To achieve a large scale VXLAN deployment, the two things main things to keep in mind are :
+	- VTEPs need to know easily about other VTEPs sharing the same ID
+	- VTEPs need to know about hosts behind remote VTEPs (to avoid network congestion with useless broadcast, unknown unicast or multicast (BUM) packets sent to all/too many VTEPs)) 
+
+
+BGP EVPN is a solution to avoid :
+	- using multicast or hardcoded IPs to reach other VTEPs
+	- learning dynamically about hosts behind VTEPs (by analyzing incoming packets)
+
+Why would you want to avoid those two things ?
+	- dynamic learning can pose a security risk (what if an attacker sends a fake REAL_SERVER_MAC:ATTACKER_VTEP_IP association to a VTEP hosting REAL_SERVER ?)
+	- multicast VXLAN causes unnecessary network congestion (each VXLAN packet is sent to all VTEPs that subscribed to the multicast group, instead of only the concerned ones)
+	- static VXLAN is probably a nightmare to maintain 
+
+What is BGP EVPN ?
+
+BGP EVPN repose sur BGP (RFC 4271) et ses extensions MP-BGP (RFC 4760). BGP est le protocole de routage animant Internet. Via les extensions MP-BGP, il peut être utilisé pour transporter des informations d’accessibilité (NLRI) pour divers protocoles (IPv4, IPv6, L3 VPN et dans le cas qui nous intéresse, EVPN). EVPN est une famille spéciale permettant de publier des informations sur les adresses MAC et les équipements terminaux y donnant accès.
+
+So how does it work ?
+
+Instead of learning dynamically, VTEPs will use BGP to 
+
+A route reflector (RR) will centralize all the data and distribute it to the VTEPs (called "leafs", in this context)
+
+Route reflectors reflect the routes announced by the peers configured as clients
+
+https://docs.frrouting.org/en/latest/bgp.html
+
+Local MAC addresses will be learned automatically by the VTEP (which is fine)
+But remote MAC addresses will be learned via BGP EVPN.
+
+Thanks to BGP EVPN and its RR, the FDB of our VTEPs will synchronize automatically.

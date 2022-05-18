@@ -5,6 +5,7 @@ auto lo
 iface lo inet loopback
 
 # Static config for eth0 (interface physically connected to a VTEP with network 192.168.42.0/24)
+# + Disable IPv6 (unused in this workshop)
 auto eth0
 iface eth0 inet static
 	address 192.168.42.2

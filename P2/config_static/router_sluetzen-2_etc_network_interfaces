@@ -14,6 +14,7 @@ iface eth1 inet static
 
 # Static config for eth0
 # (inner-facing interface physically connected to a HOST)
+# + Disable IPv6 (unused in this workshop)
 auto eth0
 iface eth0 inet manual
 	up ip link set eth0 up 

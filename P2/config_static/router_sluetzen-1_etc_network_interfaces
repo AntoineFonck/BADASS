@@ -7,6 +7,7 @@ iface lo inet loopback
 
 # Static config for eth1
 # (outer-facing IP interface that forwards/receives VXLAN packets to/from VTEPs)
+# + Disable IPv6 (unused in this workshop)
 auto eth1
 iface eth1 inet static
 	address 42.42.42.1
