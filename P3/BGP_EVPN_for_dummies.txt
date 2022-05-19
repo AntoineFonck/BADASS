@@ -4,6 +4,24 @@ Security issue with default VXLAN (RFC 7348)
 
 BGP EVPN (RFC 8365)
 
+BGP EVPN (Border Gateway Protocol / Ethernet Virtual Private Network)
+
+First of all, let's define what is an AS (Autonomous System).
+
+An AS is an independent network usually connected to the internet, and defined by an ID (ASN - Autonomous System Number).
+AS are usually under the control of companies or organizations.
+
+BGP is a protocol used at internet-scale for routers to exchange routing informations between each other.
+eBGP (exterior BGP) is used by routers between two AS
+iBGP (interior BGP) is used by routers inside a single AS
+
+When routers use BGP under the same ASN, they automatically use iBGP.
+
+iBGP is usually used to bring the outgoing traffic outside of the AS.
+
+When in iBGP mode, BGP routers act in two interesting ways :
+	- They don't redistribute routes that they learned from an other router. This means that for iBGP to work, you would have to interconnect all iBGP routers between each other. A better solution for that is to use RR (Route Reflectors).
+
 Le principe de cette solution est simple : les hôtes hébergeant les VTEP utilisent BGP pour échanger les informations nécessaires au fonctionnement de VXLAN. Un VTEP n'apprend plus les associations {adresse MAC → VTEP} en observant des paquets : il est désormais impossible pour un attaquant d'empoisonner des VTEP simplement en envoyant des paquets VXLAN.
 https://connect.ed-diamond.com/MISC/misc-110/securite-de-l-implementation-standard-de-vxlan (FR)
 https://vincent.bernat.ch/fr/blog/2017-vxlan-bgp-evpn (FR)
@@ -42,3 +60,43 @@ Local MAC addresses will be learned automatically by the VTEP (which is fine)
 But remote MAC addresses will be learned via BGP EVPN.
 
 Thanks to BGP EVPN and its RR, the FDB of our VTEPs will synchronize automatically.
+
+We will use OSPF as a routing protocol in our iBGP backbone.
+
+OSPF (Open Shortest Path First), an internal routing protocol, will be used so that our routers swiftly create a BGP 
+
+BGP, through its extensions (called MP-BGP - MultiProtocol extensions for Border Gateway Protocol), can be used to carry 
+
+In our network, BGP-EVPN will be used as our control plane
+While VXLAN will be our data plane
+
+Control plane : how our data is routed (BGP-EVPN)
+Data plane : what is the data being routed (VXLAN traffic)
+
+NLRI : Network Layer Reachability Information
+
+Natively, BGP-4 (the current version of the BGP protocol) can only carry and relay IPv4 unicast NLRI.
+
+Through its extensions (MP-BGP), it can relay more NLRI (eg IPv6 unicast, IPv4 multicast...).
+
+EVPN uses the MP-BGP extensions to add new available NLRI sharable by BGP --> EVPN NLRI.
+The available NLRI are :
+	- Host IP address
+	- MAC address
+	- VNI
+
+This is great for VXLAN !
+
+After a VTEP learns the IP address and MAC address of a connected host, the VTEP can send the information to other VTEPs through MP-BGP routes. In this way, learning of host IP address and MAC address information can be implemented on the control plane, suppressing traffic flooding on the data plane (with multicast).
+
+Using EVPN as the control plane of VXLAN has the following advantages:
+
+	- VTEPs can be automatically discovered and VXLAN tunnels can be automatically established, simplifying network deployment and expansion.
+	- EVPN can advertise both Layer 2 MAC address information and Layer 3 routing information.
+	- Flooding traffic is reduced on the network.
+
+This also has the added benefit of being more secure.
+
+https://support.huawei.com/enterprise/en/doc/EDOC1100086966/57c6e2cd?idPath=24030814|21782165|21782239|22318540|7597815 (VXLAN)
+
+https://support.huawei.com/enterprise/fr/doc/EDOC1100168670 (BGP-EVPN)
