@@ -4,7 +4,9 @@ Objectives :
 VXLAN set up statically (host_1 and host_2 can communicate at L2 level)
 
 This workshop introduces a problem :
-How to make VTEPs know about each other, and about the hosts to which they are physically connected ?
+How to make VTEPs know about :
+	- The hosts they handle
+	- Other VTEPs, and about the hosts those other VTEPs handle ?
 
 Well, VTEPs, by default, learn associations dynamically.
 
@@ -12,6 +14,7 @@ For instance :
 1) Host1 sends a frame meant for Host2 to VTEP1.
 2) VTEP1 knows that Host2 is behind VTEP2, so it forwards the frame to VTEP2.
 3) VTEP2 analyzes the frame, and forwards it to Host2.
+
 Before, VTEP2 didn't know Host1 was behind VTEP1, and now it knows it thanks to this frame.
 
 Host1 --> VTEP1 --> VTEP2 --> Host2
@@ -22,10 +25,12 @@ In the FDB, you find the following associations :
 MAC address - network interface (for local devices, e.g. 42:42:42:42:42:42 eth1)
 MAC address - IP of the master VTEP (for non-local devices, e.g. DE:AD:BE:EF:DE:AD 42.42.42.3)
 
-But VTEPs can never learn if they don't receive anything.
+But how can VTEPs learn about remote MAC-VTEP associations in the first place ?
 
-So, the easiest solution is to statically link VTEPs in the FDB.
+The first simple solution is to statically link VTEPs between each other in the FDB.
+
 Basically, if a VTEP receives a frame meant for a device it doesn't know, and is behind an other VTEP, it will forward the frame via VXLAN to the hardcoded VTEP in the FDB.
+
 The entry in the FDB will look like this :
 
 (wildcard MAC)		(VTEP_IP)
@@ -33,4 +38,25 @@ The entry in the FDB will look like this :
 
 We will statically configure the 2 VTEPs so that they don't need to learn about each other dynamically with multicast
 
+----------------------------------------------------
 
+The important line in the VTEP config is this one :
+
+ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 remote 42.42.42.2 dev eth1
+
+Here, we create a new VXLAN interface, with :
+	- VNI == 10
+	- use UDP port 4789
+	- send VXLAN packets with IP source 42.42.42.1
+	- send all VXLAN packets to the remote VTEP at 42.42.42.2, through the eth1 interface
+
+
+We create a virtual network bridge between this vxlan interface and our host-facing interface.
+
+This way, any packet that is sent by the host will automatically be handled by the VTEP as VXLAN.
+
+If we add any new local host to this VTEP, we only have to add the new interface to the bridge, and everything will work just fine.
+
+If we need more than two VTEPs, we only need to statically add them (remote 42.42.42.3, remote 42.42.42.4...)
+
+Of course, each VTEP needs to be updated in consequence. This can quickly become cumbersome.

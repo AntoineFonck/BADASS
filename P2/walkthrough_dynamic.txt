@@ -20,3 +20,18 @@ If we added a VTEP3, and continued using the static configuration, we would have
 
 However, if we used a dynamic configuration, we would only have to :
 	- set up VTEP3 to be a member of the multicast group we created (239.1.1.1)
+
+----------------------------------------------------
+
+Here is the interesting line in our config :
+
+ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 group 239.1.1.1 dev eth1
+
+Everything is exactly the same as in the other config, only that now we use "group 239.1.1.1" instead of "remote 42.42.42.1".
+
+Thanks to this instruction, our VTEPs will automatically use IGMP to join the 239.1.1.1 group.
+
+After that, the group will be used as a destination by VTEPs to handle BUM traffic :
+	- Broadcast (e.g. ARP)
+	- Unknown unicast (e.g. when a VTEP doesn't know to which VTEP the MAC address of a host belongs)
+	- Multicast

@@ -5,6 +5,12 @@
 auto lo
 iface lo inet loopback
 
+# Add BGP loopback address to the loopback interface
+auto lo:1
+iface lo:1 inet static
+	address 10.42.42.42
+	netmask 255.255.255.255
+
 # Static config for eth1
 # (outer-facing IP interface that forwards/receives VXLAN packets to/from VTEPs)
 # + Disable IPv6 (unused in this workshop)
@@ -28,9 +34,9 @@ iface eth0 inet manual
 # (virtual VXLAN interface that handles VXLAN encapsulation/decapsulation and dynamic learning)
 auto vxlan10
 iface vxlan10 inet manual
-#	pre-up ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 remote 42.42.42.2 dev eth1 || true
+#	pre-up ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 remote 42.42.42.2 dev eth1 nolearning || true
 #	FIX stupid bootstrap GNS3 busybox ip command (/tmp/gns3/bin/ip, set up at /gns3/init.sh) that can't even properly set up a VXLAN interface
-	pre-up env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 group 239.1.1.1 dev eth1 || true
+	pre-up env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ip link add vxlan10 type vxlan id 10 dstport 4789 local 42.42.42.1 group 239.1.1.1 dev eth1 nolearning || true
 	up ip link set vxlan10 up
 	down ip link set vxlan10 down
 	post-down ip link del vxlan10 

@@ -1,0 +1,5 @@
+using loopback addresses, why ?
+Because the loopback interface never dies.
+This way, the iBGP session will not be interrupted if the physical link is broken between peers.
+
+A loopback address other than 127.0.0.1 must be used (as 127.0.0.0/8 is not routable)

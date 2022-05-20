@@ -22,7 +22,7 @@ VLAN is a technology that lets you have isolated virtual LANs with a reduced num
 
 The networks (and the devices inside) are isolated from each other by the switch in a virtual way, instead of a physical way.
 
-To get the same LAN isolation without VLANs, you would need two very distinct physical networks, with their respective switches, WIFI access points and so on...
+To get the same LAN isolation without VLANs, you would need two very distinct physical networks, with their respective switches, or WIFI access points...
 
 In the same manner as for isolated LANs, the only way for devices from different VLANs to communicate with each other is to go through a router.
 
@@ -59,7 +59,7 @@ VLANs have some limitations :
 
 ------------------------------------------------
 
-3) What is VXLAN (Virtual eXtended Local Area Network) ?
+3) What is VXLAN (Virtual eXtensible Local Area Network) ?
 
 VXLAN is a technology that lets you have VLANs over an IP network.
 It is an extension of the VLAN technology.
@@ -72,7 +72,7 @@ How does it work ?
 
 As we saw, it would usually be impossible for L2 frames to reach their destination if they are not on the same L2 domain.
 
-Under, we see the problem --> A pure IP packet has to way to retain Ethernet information, as L2 comes before L3, and is therefore discarded when the IP packet is transmitted.
+Under, we see the problem --> A pure IP packet has no way to retain Ethernet information (as L2 comes before L3) and is therefore discarded when the IP packet is transmitted.
 L2		L3
 Ethernet ->	IP
 
@@ -83,7 +83,7 @@ Encapsulation is a solution used often in networking.
 The idea is very simple :
 You put the original packet (in our case, a L2/Ethernet frame, that usually can't be transmitted) in a whole new packet (here, a L3/IP packet, that can be transmitted !).
 
-This way, when the packet reaches its destination, you only have to throw away/decapsulate the original packet. Then you end up with the original packet, that was able to reach its destination only thanks to encapsulation.
+This way, when the packet reaches its destination, you only have to throw away/decapsulate the new packet. Then you end up with the original packet, that was able to reach its destination only thanks to encapsulation.
 
 
                                    ┌───────────────────────────────────┐
@@ -101,10 +101,10 @@ This way, when the packet reaches its destination, you only have to throw away/d
 Through encapsulation, you create what is called an overlay network.
 
 An overlay network works as an abstraction.
-It seems for connected devices like a normal network.
-However, behind the scenes, a possibly messy underlay network handles all the hard work.
+It appears to connected devices as a normal network.
+However, behind the scenes, a possibly messy and complicated underlay network handles all the hard work.
 
-For VXLAN, our overlay network is the VLAN we created (a L2 network).
+For VXLAN, our overlay network is the "fake" L2 network we created.
 Its underlay network is the IP network working behind the scenes with the encapsulation (a L3 network).
 
 How does this encapsulation work for VXLAN ?
@@ -115,7 +115,7 @@ L3	L4			L2(encapsulated)
 IP  ->	UDP+VXLAN Header  ->	Ethernet
 
 Devices called VTEP are the ones doing the encapsulation/decapsulation.
-They also add a VXLAN header to the original layer 2 frame. This way, they can differentiate between different VLAN, thanks to a specific ID : the VNI (Vxlan Network Identifier).
+They also add a VXLAN header to the original layer 2 frame. This way, they can differentiate between different VLANs, thanks to a specific ID : the VNI (Vxlan Network Identifier).
 
 
 Here's what the hosts see (the overlay network) :

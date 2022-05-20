@@ -38,7 +38,7 @@ BGP EVPN is a solution to avoid :
 	- learning dynamically about hosts behind VTEPs (by analyzing incoming packets)
 
 Why would you want to avoid those two things ?
-	- dynamic learning can pose a security risk (what if an attacker sends a fake REAL_SERVER_MAC:ATTACKER_VTEP_IP association to a VTEP hosting REAL_SERVER ?)
+	- dynamic learning can pose a security risk (what if an attacker sends a fake REAL_SERVER_MAC:ATTACKER_VTEP_IP association to a VTEP)
 	- multicast VXLAN causes unnecessary network congestion (each VXLAN packet is sent to all VTEPs that subscribed to the multicast group, instead of only the concerned ones)
 	- static VXLAN is probably a nightmare to maintain 
 
@@ -100,3 +100,5 @@ This also has the added benefit of being more secure.
 https://support.huawei.com/enterprise/en/doc/EDOC1100086966/57c6e2cd?idPath=24030814|21782165|21782239|22318540|7597815 (VXLAN)
 
 https://support.huawei.com/enterprise/fr/doc/EDOC1100168670 (BGP-EVPN)
+
+
