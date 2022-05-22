@@ -101,4 +101,14 @@ https://support.huawei.com/enterprise/en/doc/EDOC1100086966/57c6e2cd?idPath=2403
 
 https://support.huawei.com/enterprise/fr/doc/EDOC1100168670 (BGP-EVPN)
 
+https://support.huawei.com/enterprise/fr/doc/EDOC1100082074 (OSPF)
 
+Using an IGP is recommended with iBGP. Without the IGP, iBGP must neighbor on external-facing interfaces, with an IGP, iBGP can neighbor on loopback interfaces which never go down, and can have multiple paths to reach.
+
+We use OSPF as an IGP.
+
+Why ?
+
+This is mostly the case with iBGP, which is generally configured using the router loopback interface address rather than the directly connected interface address. This is very useful as the BGP session will not go down if the physical interface goes down as long as there is a backup path to the peer router loopback address. The IGP is used to establish the BGP session (TCP session) and to resolve the BGP next hop.
+
+https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/200952-Configuration-and-Verification-VXLAN-wit.html
