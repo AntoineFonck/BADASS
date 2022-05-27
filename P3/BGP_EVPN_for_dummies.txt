@@ -112,3 +112,5 @@ Why ?
 This is mostly the case with iBGP, which is generally configured using the router loopback interface address rather than the directly connected interface address. This is very useful as the BGP session will not go down if the physical interface goes down as long as there is a backup path to the peer router loopback address. The IGP is used to establish the BGP session (TCP session) and to resolve the BGP next hop.
 
 https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/200952-Configuration-and-Verification-VXLAN-wit.html
+
+VTEPs use BGP-EVPN to advertise their local hosts, via the route reflector, to other VTEPs
