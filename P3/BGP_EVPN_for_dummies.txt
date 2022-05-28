@@ -1,91 +1,99 @@
-Why not keep using only multicast ?
+BGP EVPN for dummies
 
-Security issue with default VXLAN (RFC 7348)
+1) What is BGP ?
+2) What is EVPN ?
+3) How does BGP EVPN relate to VXLAN ?
+4) How do these notions relate to the project ?
 
-BGP EVPN (RFC 8365)
+--------------------------------------------------
 
-BGP EVPN (Border Gateway Protocol / Ethernet Virtual Private Network)
+1) What is BGP (RFC 4271) ?
 
-First of all, let's define what is an AS (Autonomous System).
+BGP (Border Gateway Protocol) is the routing protocol powering the internet.
 
-An AS is an independent network usually connected to the internet, and defined by an ID (ASN - Autonomous System Number).
-AS are usually under the control of companies or organizations.
+The internet is a network composed of independant networks.
+We call those independant networks "AS" (Autonomous System(s)).
 
-BGP is a protocol used at internet-scale for routers to exchange routing informations between each other.
-eBGP (exterior BGP) is used by routers between two AS
-iBGP (interior BGP) is used by routers inside a single AS
+One AS is usually under the control of a single company/organization.
+An AS is composed of one or several public IP range(s).
 
-When routers use BGP under the same ASN, they automatically use iBGP.
+BGP is used by routers to connect multiple AS to each other.
 
-iBGP is usually used to bring the outgoing traffic outside of the AS.
+eBGP (exterior BGP) is used by routers between two AS.
+iBGP (interior BGP) is used by routers inside a single AS (usually only to forward eBGP routes troughout a single network).
 
-When in iBGP mode, BGP routers act in two interesting ways :
-	- They don't redistribute routes that they learned from an other router. This means that for iBGP to work, you would have to interconnect all iBGP routers between each other. A better solution for that is to use RR (Route Reflectors).
+When routers use BGP under the same ASN (Autonomous System Number), they automatically use iBGP.
 
-Le principe de cette solution est simple : les hôtes hébergeant les VTEP utilisent BGP pour échanger les informations nécessaires au fonctionnement de VXLAN. Un VTEP n'apprend plus les associations {adresse MAC → VTEP} en observant des paquets : il est désormais impossible pour un attaquant d'empoisonner des VTEP simplement en envoyant des paquets VXLAN.
-https://connect.ed-diamond.com/MISC/misc-110/securite-de-l-implementation-standard-de-vxlan (FR)
-https://vincent.bernat.ch/fr/blog/2017-vxlan-bgp-evpn (FR)
+--------------------------------------------------
 
-The vulnerability comes from the fact that the VTEP "learns" associations when it receives a packet.
+2) What is EVPN (RFC 7432) ?
 
-To achieve a large scale VXLAN deployment, the two things main things to keep in mind are :
-	- VTEPs need to know easily about other VTEPs sharing the same ID
-	- VTEPs need to know about hosts behind remote VTEPs (to avoid network congestion with useless broadcast, unknown unicast or multicast (BUM) packets sent to all/too many VTEPs)) 
+EVPN (Ethernet Virtual Private Network) is a modern Layer 2 VPN solution (modern, as the official RFC came out in February 2015).
 
+A VPN (Virtual Private Network) is a technology that extends a private network, by creating a virtual link between this private network and another one, usually through tunneling.
+A well known use case it to let clients connect to a private network to which they do not originally belong.
+For instance: a company VPN that lets workers connect to the company's internal network through the internet, allowing them to work from home.
 
-BGP EVPN is a solution to avoid :
+As a L2VPN, EVPN is a solution to extend and interconnect L2 domains.
+Typically, it is used to virtually interconnect datacenters over an IP network.
+
+To create this interconnection, EVPN implements a control plane through iBGP, more precisely through the MP-BGP extensions (RFC 4760).
+
+The control plane refers to all functions and processes that determine how packets should be forwarded.
+For instance, a router sharing connectivity information to another router through BGP.
+
+The data plane refers to all functions and processes that actually forward the packets (based on information given through the control plane).
+For instance, a router forwarding a packet after checking its routing table.
+
+In EVPN, devices called Provider Edge (PE) provide virtual Layer 2 connectivity between Customer Edge (CE) devices.
+PEs advertise the MAC addresses learned from the CEs that are connected to them.
+
+BGP EVPN introduces the concept of MAC routing between PEs.
+
+--------------------------------------------------
+
+3) How does BGP EVPN relate to VXLAN ?
+
+BGP EVPN is an elegant solution to handle a single or multiple VXLAN network(s).
+Basically, it brings a solid control plane to VXLAN, which lacks one by default.
+
+More precisely, BGP EVPN is a solution for VTEPs to avoid :
 	- using multicast or hardcoded IPs to reach other VTEPs
-	- learning dynamically about hosts behind VTEPs (by analyzing incoming packets)
+	- learning dynamically about hosts behind VTEPs (by analyzing incoming packets, which can also cause a security risk if an attacker sends a fake REAL_SERVER_MAC:ATTACKER_VTEP_IP association to a victim VTEP. See here for full details: https://connect.ed-diamond.com/MISC/misc-110/securite-de-l-implementation-standard-de-vxlan (FR)).
 
-Why would you want to avoid those two things ?
-	- dynamic learning can pose a security risk (what if an attacker sends a fake REAL_SERVER_MAC:ATTACKER_VTEP_IP association to a VTEP)
-	- multicast VXLAN causes unnecessary network congestion (each VXLAN packet is sent to all VTEPs that subscribed to the multicast group, instead of only the concerned ones)
-	- static VXLAN is probably a nightmare to maintain 
+By solving these two problems, we can achieve large scale and resilient VXLAN infrastructure deployments.
 
-What is BGP EVPN ?
+--------------------------------------------------
 
-BGP EVPN repose sur BGP (RFC 4271) et ses extensions MP-BGP (RFC 4760). BGP est le protocole de routage animant Internet. Via les extensions MP-BGP, il peut être utilisé pour transporter des informations d’accessibilité (NLRI) pour divers protocoles (IPv4, IPv6, L3 VPN et dans le cas qui nous intéresse, EVPN). EVPN est une famille spéciale permettant de publier des informations sur les adresses MAC et les équipements terminaux y donnant accès.
+4) How do these notions relate to the project ?
 
-So how does it work ?
+In the third and final part of the project, we have to implement using BGP EVPN as a control plane for our datacenter relying on VXLAN.
 
-Instead of learning dynamically, VTEPs will use BGP to 
+In our BPG EVPN/VXLAN infrastructure:
+	- The VTEPs are the PEs
+	- The hosts are the CEs
+	- The RR will reflect all routes announced by the VTEPs/PEs
 
-A route reflector (RR) will centralize all the data and distribute it to the VTEPs (called "leafs", in this context)
+The VTEPs will automatically learn about their local hosts MAC addresses (which is fine).
+But VTEPs will learn about remote hosts MAC addresses via BGP EVPN.
 
-Route reflectors reflect the routes announced by the peers configured as clients
+We will use a RR, so that the FDB of our VTEPs will synchronize automatically.
 
-https://docs.frrouting.org/en/latest/bgp.html
+We are asked to use the loopback interfaces of our VTEPs and RR for the iBGP sessions.
+This is a common good practice, as loopback interfaces never go down, and can have multipe paths to be reachable from.
+This way, iBGP sessions don't go down if one physical link is down but another one is up.
 
-Local MAC addresses will be learned automatically by the VTEP (which is fine)
-But remote MAC addresses will be learned via BGP EVPN.
+However, we cannot route directly between loopback interfaces.
 
-Thanks to BGP EVPN and its RR, the FDB of our VTEPs will synchronize automatically.
+So in order to achieve this practice, we have to use an IGP (Interior Gateway Protocol - so basically a routing protocol made to be used in a single AS).
+The IGP is used to establish the iBGP session (TCP session) between the VTEPs and the RR.
 
-We will use OSPF as a routing protocol in our iBGP backbone.
+In our case, we will use OSPF (Open Shortest Path First) as an IGP.
 
-OSPF (Open Shortest Path First), an internal routing protocol, will be used so that our routers swiftly create a BGP 
-
-BGP, through its extensions (called MP-BGP - MultiProtocol extensions for Border Gateway Protocol), can be used to carry 
-
-In our network, BGP-EVPN will be used as our control plane
-While VXLAN will be our data plane
-
-Control plane : how our data is routed (BGP-EVPN)
-Data plane : what is the data being routed (VXLAN traffic)
-
-NLRI : Network Layer Reachability Information
-
-Natively, BGP-4 (the current version of the BGP protocol) can only carry and relay IPv4 unicast NLRI.
-
-Through its extensions (MP-BGP), it can relay more NLRI (eg IPv6 unicast, IPv4 multicast...).
-
-EVPN uses the MP-BGP extensions to add new available NLRI sharable by BGP --> EVPN NLRI.
 The available NLRI are :
 	- Host IP address
 	- MAC address
 	- VNI
-
-This is great for VXLAN !
 
 After a VTEP learns the IP address and MAC address of a connected host, the VTEP can send the information to other VTEPs through MP-BGP routes. In this way, learning of host IP address and MAC address information can be implemented on the control plane, suppressing traffic flooding on the data plane (with multicast).
 
@@ -103,13 +111,9 @@ https://support.huawei.com/enterprise/fr/doc/EDOC1100168670 (BGP-EVPN)
 
 https://support.huawei.com/enterprise/fr/doc/EDOC1100082074 (OSPF)
 
-Using an IGP is recommended with iBGP. Without the IGP, iBGP must neighbor on external-facing interfaces, with an IGP, iBGP can neighbor on loopback interfaces which never go down, and can have multiple paths to reach.
-
 We use OSPF as an IGP.
 
 Why ?
-
-This is mostly the case with iBGP, which is generally configured using the router loopback interface address rather than the directly connected interface address. This is very useful as the BGP session will not go down if the physical interface goes down as long as there is a backup path to the peer router loopback address. The IGP is used to establish the BGP session (TCP session) and to resolve the BGP next hop.
 
 https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/200952-Configuration-and-Verification-VXLAN-wit.html
 
