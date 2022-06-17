@@ -1,5 +1,36 @@
-using loopback addresses, why ?
-Because the loopback interface never dies.
-This way, the iBGP session will not be interrupted if the physical link is broken between peers.
+THIRD PART : VXLAN with BGP EVPN control plane
 
-A loopback address other than 127.0.0.1 must be used (as 127.0.0.0/8 is not routable)
+Objective : 
+Integrate the BGP EVPN control plane to our VXLAN network
+
+In the third and final part of the project, we have to implement using BGP EVPN as a control plane for our datacenter relying on VXLAN.
+
+In our BPG EVPN/VXLAN infrastructure:
+	- The VTEPs are the PEs
+	- The hosts are the CEs
+	- The RR will reflect all routes announced by the VTEPs/PEs
+
+The VTEPs will automatically learn about their local hosts MAC addresses (which is fine).
+But VTEPs will learn about remote hosts MAC addresses via BGP EVPN.
+
+We will use a RR, so that the FDB of our VTEPs will synchronize automatically.
+
+We are asked to use the loopback interfaces of our VTEPs and RR for the iBGP sessions.
+This is a common good practice, as loopback interfaces never go down, and can have multipe paths to be reachable from.
+This way, iBGP sessions don't go down if one physical link is down but another one is up.
+
+However, we cannot route directly between loopback interfaces.
+
+So in order to achieve this practice, we have to use an IGP (Interior Gateway Protocol - so basically a routing protocol made to be used in a single AS).
+The IGP is used to establish the iBGP session (TCP session) between the VTEPs and the RR.
+
+In our case, we will use OSPF (Open Shortest Path First) as an IGP.
+
+So to make all of that clear, here's how things will happen once we integrate the BGP EVPN control plane to our VXLAN network :
+	1) VTEP1 has 1 local host (Host1), and VTEP2 also has 1 local host (Host2), VTEP1 and VTEP2 are both connected to a Route Reflector.
+	2) VTEP1 and VTEP2 automatically learn about the MAC addresses of their respective local hosts
+	3) VTEP1 and VTEP2 forward this information to the Route Reflector via BGP routes
+	4) The Route Reflector reflects both routes back to VTEP1 and VTEP2
+	5) Now that VTEP1 and VTEP2 have all the information they need about each other, Host1 and Host2 can communicate
+
+

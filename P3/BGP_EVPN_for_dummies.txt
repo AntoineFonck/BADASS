@@ -3,7 +3,6 @@ BGP EVPN for dummies
 1) What is BGP ?
 2) What is EVPN ?
 3) How does BGP EVPN relate to VXLAN ?
-4) How do these notions relate to the project ?
 
 --------------------------------------------------
 
@@ -37,7 +36,7 @@ For instance: a company VPN that lets workers connect to the company's internal 
 As a L2VPN, EVPN is a solution to extend and interconnect L2 domains.
 Typically, it is used to virtually interconnect datacenters over an IP network.
 
-To create this interconnection, EVPN implements a control plane through iBGP, more precisely through the MP-BGP extensions (RFC 4760).
+To create this interconnection, EVPN implements a control plane through BGP, more precisely through the MP-BGP extensions (RFC 4760).
 
 The control plane refers to all functions and processes that determine how packets should be forwarded.
 For instance, a router sharing connectivity information to another router through BGP.
@@ -48,11 +47,11 @@ For instance, a router forwarding a packet after checking its routing table.
 In EVPN, devices called Provider Edge (PE) provide virtual Layer 2 connectivity between Customer Edge (CE) devices.
 PEs advertise the MAC addresses learned from the CEs that are connected to them.
 
-BGP EVPN introduces the concept of MAC routing between PEs.
+BGP EVPN introduces the concept of MAC routing between PEs, which is very convenient for VXLAN...
 
 --------------------------------------------------
 
-3) How does BGP EVPN relate to VXLAN ?
+3) How does BGP EVPN relate to VXLAN (RFC 8365) ?
 
 BGP EVPN is an elegant solution to handle a single or multiple VXLAN network(s).
 Basically, it brings a solid control plane to VXLAN, which lacks one by default.
@@ -64,57 +63,3 @@ More precisely, BGP EVPN is a solution for VTEPs to avoid :
 By solving these two problems, we can achieve large scale and resilient VXLAN infrastructure deployments.
 
 --------------------------------------------------
-
-4) How do these notions relate to the project ?
-
-In the third and final part of the project, we have to implement using BGP EVPN as a control plane for our datacenter relying on VXLAN.
-
-In our BPG EVPN/VXLAN infrastructure:
-	- The VTEPs are the PEs
-	- The hosts are the CEs
-	- The RR will reflect all routes announced by the VTEPs/PEs
-
-The VTEPs will automatically learn about their local hosts MAC addresses (which is fine).
-But VTEPs will learn about remote hosts MAC addresses via BGP EVPN.
-
-We will use a RR, so that the FDB of our VTEPs will synchronize automatically.
-
-We are asked to use the loopback interfaces of our VTEPs and RR for the iBGP sessions.
-This is a common good practice, as loopback interfaces never go down, and can have multipe paths to be reachable from.
-This way, iBGP sessions don't go down if one physical link is down but another one is up.
-
-However, we cannot route directly between loopback interfaces.
-
-So in order to achieve this practice, we have to use an IGP (Interior Gateway Protocol - so basically a routing protocol made to be used in a single AS).
-The IGP is used to establish the iBGP session (TCP session) between the VTEPs and the RR.
-
-In our case, we will use OSPF (Open Shortest Path First) as an IGP.
-
-The available NLRI are :
-	- Host IP address
-	- MAC address
-	- VNI
-
-After a VTEP learns the IP address and MAC address of a connected host, the VTEP can send the information to other VTEPs through MP-BGP routes. In this way, learning of host IP address and MAC address information can be implemented on the control plane, suppressing traffic flooding on the data plane (with multicast).
-
-Using EVPN as the control plane of VXLAN has the following advantages:
-
-	- VTEPs can be automatically discovered and VXLAN tunnels can be automatically established, simplifying network deployment and expansion.
-	- EVPN can advertise both Layer 2 MAC address information and Layer 3 routing information.
-	- Flooding traffic is reduced on the network.
-
-This also has the added benefit of being more secure.
-
-https://support.huawei.com/enterprise/en/doc/EDOC1100086966/57c6e2cd?idPath=24030814|21782165|21782239|22318540|7597815 (VXLAN)
-
-https://support.huawei.com/enterprise/fr/doc/EDOC1100168670 (BGP-EVPN)
-
-https://support.huawei.com/enterprise/fr/doc/EDOC1100082074 (OSPF)
-
-We use OSPF as an IGP.
-
-Why ?
-
-https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/200952-Configuration-and-Verification-VXLAN-wit.html
-
-VTEPs use BGP-EVPN to advertise their local hosts, via the route reflector, to other VTEPs
