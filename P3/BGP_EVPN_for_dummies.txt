@@ -1,12 +1,59 @@
 BGP EVPN for dummies
 
-1) What is BGP ?
-2) What is EVPN ?
-3) How does BGP EVPN relate to VXLAN ?
+1) What is the control plane/data plane? 
+2) What is a VPN?
+3) What is BGP?
+4) What is EVPN?
+5) How does BGP EVPN relate to VXLAN?
 
 --------------------------------------------------
 
-1) What is BGP (RFC 4271) ?
+1) What is the control plane/data plane?
+
+WARNING: Both terms are conceptual, and do not relate to specific protocols. Their goal is to abstract and categorize complicated network topologies.
+
+The CONTROL PLANE in a network refers to all functions and processes that determine HOW packets should be forwarded.
+For instance, a router sharing connectivity information to another router through BGP.
+
+The DATA PLANE in a network refers to all functions and processes that ACTUALLY FORWARD the packets (based on information given through the control plane).
+For instance, a router forwarding a packet after checking its routing table.
+
+--------------------------------------------------
+
+2) What is a VPN?
+
+A VPN (Virtual Private Network) is a technology that extends a private network, by creating a virtual link between this private network and another one, usually through tunneling.
+
+Remote access VPN:
+	A well known use case it to let clients connect to a private network to which they do not originally belong.
+	For instance: a company VPN that lets workers connect to the company's internal network through the internet, allowing them to work from home.
+
+Other use cases include:
+Site-to-site VPN:
+	Connecting two private networks (e.g. the regional Scranton branch to the New-York based Corporate) between each other. This connection may run over another network, like the internet.
+
+Even a VLAN can be considered as a VPN.
+Indeed, it provides virtual private interconnection between clients.
+
+Common terminologies used in VPN topologies:
+
+Customer device (C): Any client device not directly connected to the VPN provider
+
+Customer Edge device (CE): Any client device directly connected to the VPN provider
+
+Provider Edge device (PE): Any VPN provider device directly connected to the CE
+
+Provider device (P): Any VPN provider device not directly connected to the CE
+
+
+EXAMPLE use of those terms:
+In a VLAN:
+The switch is a PE.
+Client hosts are CE.
+
+--------------------------------------------------
+
+3) What is BGP (RFC 4271) ?
 
 BGP (Border Gateway Protocol) is the routing protocol powering the internet.
 
@@ -25,35 +72,31 @@ When routers use BGP under the same ASN (Autonomous System Number), they automat
 
 --------------------------------------------------
 
-2) What is EVPN (RFC 7432) ?
+4) What is EVPN (RFC 7432) ?
 
-EVPN (Ethernet Virtual Private Network) is a modern Layer 2 VPN solution (modern, as the official RFC came out in February 2015).
+EVPN (Ethernet Virtual Private Network) is a BGP-based "control plane" for layer 2 AND layer 3 VPNs.
+It's cool because it works with many different "data plane" encapsulation protocols, including VXLAN...
+It's pretty modern (the official RFC came out in February 2015).
 
-A VPN (Virtual Private Network) is a technology that extends a private network, by creating a virtual link between this private network and another one, usually through tunneling.
-A well known use case it to let clients connect to a private network to which they do not originally belong.
-For instance: a company VPN that lets workers connect to the company's internal network through the internet, allowing them to work from home.
+By default, BGP can only be used to carry and share IPv4 routes. Therefore, it wouldn't work as a control plane for VXLAN, as we also need to share layer 2 reachability information: the hosts' MAC addresses...
+To solve that problem, EVPN uses extensions of BGP to work, the MP-BGP extensions (RFC 4760).
+More precisely, EVPN defines a new type of Network Layer Reachability Information (NLRI) to MP-BGP --> L2VPN EVPN. 
 
-As a L2VPN, EVPN is a solution to extend and interconnect L2 domains.
-Typically, it is used to virtually interconnect datacenters over an IP network.
+NLRI is a BGP field sent in a BGP message. Inside is all the interesting information (usually IPv4 routes) that routers will use and share.
 
-To create this interconnection, EVPN implements a control plane through BGP, more precisely through the MP-BGP extensions (RFC 4760).
-
-The control plane refers to all functions and processes that determine how packets should be forwarded.
-For instance, a router sharing connectivity information to another router through BGP.
-
-The data plane refers to all functions and processes that actually forward the packets (based on information given through the control plane).
-For instance, a router forwarding a packet after checking its routing table.
+This new type of NLRI is super convenient for VXLAN, as it carries everything needed so that VTEPs can easily learn about remote hosts.
+Inside the new NLRI, you can put stuff like:
+	- Host IP
+	- Host MAC address
+	- VXLAN Network ID
+	- ...
 
 In EVPN, devices called Provider Edge (PE) provide virtual Layer 2 connectivity between Customer Edge (CE) devices.
 PEs advertise the MAC addresses learned from the CEs that are connected to them.
 
-BGP EVPN introduces the concept of MAC routing between PEs, which is very convenient for VXLAN...
+With VXLAN, VTEPs are the PE, and Hosts are the CE.
 
---------------------------------------------------
-
-3) How does BGP EVPN relate to VXLAN (RFC 8365) ?
-
-BGP EVPN is an elegant solution to handle a single or multiple VXLAN network(s).
+All in all, BGP EVPN is an elegant solution to handle a single or multiple VXLAN network(s).
 Basically, it brings a solid control plane to VXLAN, which lacks one by default.
 
 More precisely, BGP EVPN is a solution for VTEPs to avoid :
@@ -62,4 +105,3 @@ More precisely, BGP EVPN is a solution for VTEPs to avoid :
 
 By solving these two problems, we can achieve large scale and resilient VXLAN infrastructure deployments.
 
---------------------------------------------------
