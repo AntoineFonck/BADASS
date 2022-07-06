@@ -1,1 +1,1 @@
-FROM alpine AS host_P1
+FROM alpine

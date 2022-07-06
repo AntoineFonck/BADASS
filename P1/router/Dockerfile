@@ -1,3 +1,3 @@
-FROM frrouting/frr AS router_P1
+FROM frrouting/frr
 
 COPY daemons /etc/frr/daemons
